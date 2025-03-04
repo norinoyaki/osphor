@@ -1,0 +1,14 @@
+name: Rust Security & Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Runs every Monday
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run Cargo Audit
+        run: cargo install cargo-audit && cargo audit

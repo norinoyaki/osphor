@@ -1,6 +1,6 @@
 name: API Tests
 
-on: pull_request
+on: [push, pull_request]
 
 jobs:
   test-api:
@@ -30,7 +30,7 @@ jobs:
         run: nohup ./target/release/osphor --port 3145 > server.log 2>&1 &
 
       - name: Wait for Server to Start
-        run: sleep 10  # Give it more time
+        run: sleep 3
 
       - name: Run API Tests
         run: cargo test --test api_tests -- --test-threads=1

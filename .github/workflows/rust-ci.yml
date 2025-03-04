@@ -29,6 +29,3 @@ jobs:
 
       - name: Run Clippy (Linter)
         run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run Tests
-        run: cargo test --all-features

@@ -33,7 +33,7 @@ jobs:
         run: sleep 3
 
       - name: Run API Tests
-        run: cargo test --test api_tests -- --test-threads=1
+        run: cargo test --test api -- --test-threads=1
 
       - name: Print Server Logs if Fails
         if: failure()

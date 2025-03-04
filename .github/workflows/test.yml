@@ -1,7 +1,6 @@
 name: API Tests
 
-on:
-  pull_request:
+on: pull_request
 
 jobs:
   test-api:
@@ -28,13 +27,17 @@ jobs:
         run: cargo build --release
 
       - name: Start Game Server
-        run: ./target/release/osphor &
-      
+        run: nohup ./target/release/osphor --port 3145 > server.log 2>&1 &
+
       - name: Wait for Server to Start
-        run: sleep 3
+        run: sleep 10  # Give it more time
 
       - name: Run API Tests
         run: cargo test --test api_tests -- --test-threads=1
+
+      - name: Print Server Logs if Fails
+        if: failure()
+        run: cat server.log
 
       - name: Stop Game Server
         run: pkill osphor || true

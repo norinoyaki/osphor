@@ -29,13 +29,23 @@ impl Database {
         let conn = Connection::open("data.db")?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS players (
-                id BIGINT PRIMARY KEY,
+                timetag BIGINT PRIMARY KEY,
                 username TEXT NOT NULL UNIQUE,
                 display TEXT NOT NULL,
-                avatar TEXT NOT NULL
+                avatar TEXT NOT NULL,
+                password TEXT NOT NULL
             )",
             [],
         )?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS sessions (
+                username TEXT NOT NULL,
+                token TEXT PRIMARY KEY,
+                expiration INTEGER NOT NULL
+            )",
+            [],
+        )?;
+
         Ok(conn)
     }
 
@@ -52,14 +62,18 @@ impl Database {
                     async move {
                         let conn = db.lock().await;
                         let mut stmt = conn
-                            .prepare("SELECT id, username, display FROM players")
+                            .prepare(
+                                "SELECT timetag, username, display, avatar, password FROM players",
+                            )
                             .unwrap();
                         let players_iter = stmt
                             .query_map([], |row| {
                                 Ok(Player {
-                                    id: row.get(0)?,
+                                    timetag: row.get(0)?,
                                     username: row.get(1)?,
                                     display: row.get(2)?,
+                                    avatar: row.get(3)?,
+                                    password: row.get(4)?,
                                 })
                             })
                             .unwrap();
@@ -79,14 +93,16 @@ impl Database {
                         let conn = db.lock().await;
                         let player = conn
                             .prepare(
-                                "SELECT id, username, display FROM players WHERE username = ?1",
+                                "SELECT timetag, username, display FROM players WHERE username = ?1",
                             )
                             .unwrap()
                             .query_row(params![username], |row| {
                                 Ok(Player {
-                                    id: row.get(0)?,
+                                    timetag: row.get(0)?,
                                     username: row.get(1)?,
                                     display: row.get(2)?,
+                                    avatar: row.get(3)?,
+                                    password: row.get(4)?,
                                 })
                             });
 
@@ -106,19 +122,19 @@ impl Database {
                 .and_then(move |mut player: Player| {
                     let db = Arc::clone(&db);
                     let random_offset: u16 = rand::rng().random_range(0..10);
-                    player.id = Some(
+                    player.timetag = Some(
                         Utc::now().timestamp_millis() as u64 / 100 * 10 + random_offset as u64,
                     );
                     async move {
                         let conn = db.lock().await;
                         conn.execute(
-                            "INSERT INTO players (id, username, display) VALUES (?1, ?2, ?3)",
-                            params![player.id, player.username, player.display],
+                            "INSERT INTO players (timetag, username, display, avatar, password) VALUES (?1, ?2, ?3, ?4, ?5)",
+                            params![player.timetag, player.username, player.display, player.avatar, player.password],
                         )
                         .unwrap();
                         Ok::<_, warp::Rejection>(warp::reply::json(&format!(
                             "Player {} added",
-                            player.id.unwrap()
+                            player.timetag.unwrap()
                         )))
                     }
                 })
@@ -129,7 +145,7 @@ impl Database {
             warp::path!("players" / String)
                 .and(warp::put())
                 .and(warp::body::json())
-                .and_then(move |id: String, player: Player| {
+                .and_then(move |timetag: String, player: Player| {
                     let db = Arc::clone(&db);
                     async move {
                         let conn = db.lock().await;
@@ -140,7 +156,7 @@ impl Database {
                         .unwrap();
                         Ok::<_, warp::Rejection>(warp::reply::json(&format!(
                             "Updated player {}",
-                            id
+                            timetag
                         )))
                     }
                 })
@@ -150,15 +166,15 @@ impl Database {
             let db = Arc::clone(&db);
             warp::path!("players" / String)
                 .and(warp::delete())
-                .and_then(move |id: String| {
+                .and_then(move |timetag: String| {
                     let db = Arc::clone(&db);
                     async move {
                         let conn = db.lock().await;
-                        conn.execute("DELETE FROM players WHERE username = ?1", params![id])
+                        conn.execute("DELETE FROM players WHERE username = ?1", params![timetag])
                             .unwrap();
                         Ok::<_, warp::Rejection>(warp::reply::json(&format!(
                             "Deleted player {}",
-                            id
+                            timetag
                         )))
                     }
                 })

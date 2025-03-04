@@ -23,7 +23,7 @@ impl Packets {
                         }
 
                         udp_socket
-                            .send_to(&buf[..amt], &src)
+                            .send_to(&buf[..amt], src)
                             .expect("Couldn't send data");
                     }
                     Err(e) => eprintln!("UDP error: {}", e),

@@ -12,7 +12,7 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
- 
+
       - name: Install sccache
         run: |
           ARCH=$(uname -m)
@@ -39,21 +39,34 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target/debug/incremental
+            target
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ runner.os }}-
 
+      - name: Cache cargo-nextest
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin/cargo-nextest
+          key: cargo-nextest-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-nextest-${{ runner.os }}-
+
+      - name: Install cargo-nextest
+        run: |
+          if ! command -v cargo-nextest &> /dev/null; then
+            cargo install cargo-nextest
+          fi
+
       - name: Build project
         run: cargo build
+
+      - name: Compile tests without running
+        run: cargo test --test api --no-run
 
       - name: Start server
         run: ./target/debug/osphor &
 
       - name: Wait for server to start
-        run: sleep 3s
-
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest
+        run: sleep 3s 
 
       - name: Run API tests
         run: cargo nextest run --test api

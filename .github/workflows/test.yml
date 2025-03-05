@@ -12,10 +12,24 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-
+ 
       - name: Install sccache
         run: |
-          curl -L https://github.com/mozilla/sccache/releases/latest/download/sccache-$(uname -m)-unknown-linux-musl.tar.gz | tar xz
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "x86_64" ]; then
+            SCCACHE_URL="https://github.com/mozilla/sccache/releases/download/v0.10.0/sccache-v0.10.0-x86_64-unknown-linux-musl.tar.gz"
+          elif [ "$ARCH" = "aarch64" ]; then
+            SCCACHE_URL="https://github.com/mozilla/sccache/releases/download/v0.10.0/sccache-v0.10.0-aarch64-unknown-linux-musl.tar.gz"
+          elif [ "$ARCH" = "armv7l" ]; then
+            SCCACHE_URL="https://github.com/mozilla/sccache/releases/download/v0.10.0/sccache-v0.10.0-armv7-unknown-linux-musleabi.tar.gz"
+          elif [ "$ARCH" = "i686" ]; then
+            SCCACHE_URL="https://github.com/mozilla/sccache/releases/download/v0.10.0/sccache-v0.10.0-i686-unknown-linux-musl.tar.gz"
+          else
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+          fi
+
+          curl -L "$SCCACHE_URL" | tar xz
           sudo mv sccache-*/sccache /usr/local/bin/
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 

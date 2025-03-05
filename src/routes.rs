@@ -21,7 +21,7 @@ pub async fn start_routes(args: &Args) {
 }
 
 async fn root() -> String {
-    return "Root Instances of Osphor API".to_string();
+    "Root Instances of Osphor API".to_string()
 }
 
 async fn players_get() -> String {

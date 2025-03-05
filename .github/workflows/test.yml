@@ -7,37 +7,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo Dependencies
+      - name: Install sccache
+        run: |
+          curl -L https://github.com/mozilla/sccache/releases/latest/download/sccache-$(uname -m)-unknown-linux-musl.tar.gz | tar xz
+          sudo mv sccache-*/sccache /usr/local/bin/
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
+      - name: Cache cargo dependencies
         uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            target/debug/incremental
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ runner.os }}-
 
-      - name: Build Project
-        run: cargo build --release
+      - name: Perform fast syntax check
+        run: cargo check
 
-      - name: Start Game Server
-        run: nohup ./target/release/osphor --port 3145 > server.log 2>&1 &
+      - name: Build project
+        run: cargo build --debug
 
-      - name: Wait for Server to Start
-        run: sleep 3
+      - name: Check for Rust changes
+        id: rust_changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -qE '\.rs$|Cargo\.toml|Cargo\.lock'; then
+            echo "run_tests=true" >> $GITHUB_ENV
+          else
+            echo "run_tests=false" >> $GITHUB_ENV
+          fi
 
-      - name: Run API Tests
-        run: cargo test --test api -- --test-threads=1
+      - name: Start server
+        run: ./target/debug/osphor &
 
-      - name: Print Server Logs if Fails
+      - name: Wait for server to start
+        run: sleep 3s
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest
+
+      - name: Run API tests
+        if: env.run_tests == 'true'
+        run: cargo nextest run --test api
+
+      - name: Print server logs on failure
         if: failure()
         run: cat server.log
 
-      - name: Stop Game Server
+      - name: Stop server
         run: pkill osphor || true

@@ -1,11 +1,10 @@
 mod database;
-mod model;
-mod packets;
+mod routes;
+
+use std::{fs, path::Path};
 
 use clap::Parser;
-use database::Database;
-use packets::Packets;
-use tokio::join;
+use routes::start_routes;
 
 #[derive(Parser)]
 #[command(name = "Osphor", about = "Dead simple multiplayer server")]
@@ -13,7 +12,7 @@ struct Args {
     #[arg(long, default_value = "0.0.0.0")]
     ip: String,
 
-    #[arg(long, default_value = "3145")]
+    #[arg(long, default_value = "31415")]
     port: u16,
 
     #[arg(long, default_value = "./server")]
@@ -23,11 +22,12 @@ struct Args {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let address = format!("{}:{}", args.ip, args.port);
+    let working_dir = args.dir.clone();
 
-    let db_task = Database::init(args.ip.clone(), args.port);
-    let packet_task = Packets::init(address);
+    // Check existential of the inputted directory
+    if !Path::new(&working_dir).is_dir() {
+        fs::create_dir(&working_dir).unwrap();
+    }
 
-    println!("Osphor is running at {}", args.dir);
-    let (_, _) = join!(db_task, packet_task);
+    start_routes(&args).await;
 }

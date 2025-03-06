@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
 use crate::{
-    database::init_database,
+    database::{init_database, login},
     model::{players_get, players_post},
     Args,
 };
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use redb::Database;
 
 #[derive(Clone)]
@@ -21,6 +24,7 @@ pub async fn start_routes(args: &Args) {
     let app = Router::new()
         .route("/", get(root))
         .route("/players", get(players_get).post(players_post))
+        .route("/login", post(login))
         .with_state(instance);
 
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.ip, args.port))

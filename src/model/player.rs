@@ -1,7 +1,4 @@
-use std::ops::Deref;
-
 use axum::{extract::State, response::IntoResponse, Json};
-use chrono::Utc;
 use redb::ReadableTable;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -10,8 +7,6 @@ use crate::{database::PLAYERS, routes::Instance};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Player {
-    #[serde(default = "default_timetag")]
-    pub timetag: u32,
     pub username: String,
     pub display: String,
     pub avatar: String,
@@ -29,10 +24,6 @@ pub struct Player {
     pub volatility: u16,
 
     pub password: String,
-}
-
-fn default_timetag() -> u32 {
-    Utc::now().timestamp_millis() as u32
 }
 
 fn default_exp() -> u32 {
@@ -105,13 +96,12 @@ pub async fn players_post(
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         };
 
-        let key = player.timetag;
         player.exp = 0;
         player.rating = 1500;
         player.deviation = 300;
         player.volatility = (0.6 * 10000.0) as u16;
         let value = serde_json::to_string(&player).unwrap();
-        table.insert(key, value.deref()).unwrap();
+        table.insert(&*player.username, &*value).unwrap();
     }
     txn.commit().unwrap();
 

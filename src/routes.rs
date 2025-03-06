@@ -1,3 +1,8 @@
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use redb::Database;
 use std::sync::Arc;
 
 use crate::{
@@ -5,11 +10,6 @@ use crate::{
     model::{players_get, players_post},
     Args,
 };
-use axum::{
-    routing::{get, post},
-    Router,
-};
-use redb::Database;
 
 #[derive(Clone)]
 pub struct Instance {

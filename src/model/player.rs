@@ -1,3 +1,4 @@
+use argon2_kdf::{Algorithm, Hasher};
 use axum::{extract::State, response::IntoResponse, Json};
 use redb::ReadableTable;
 use reqwest::StatusCode;
@@ -96,6 +97,17 @@ pub async fn players_post(
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         };
 
+        let hash = Hasher::new()
+            .algorithm(Algorithm::Argon2id)
+            .salt_length(24)
+            .hash_length(42)
+            .iterations(8)
+            .memory_cost_kib(62500)
+            .threads(1)
+            .hash(player.password.as_bytes())
+            .unwrap();
+
+        player.password = hash.to_string();
         player.exp = 0;
         player.rating = 1500;
         player.deviation = 300;

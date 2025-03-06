@@ -6,10 +6,12 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.97"
 argon2 = "0.5.3"
+argon2-kdf = "1.5.4"
 axum = "0.8.1"
 chrono = "0.4.40"
 clap = {version = "4.5.31", features = ["derive"]}
 rand = "0.9.0"
+rand_core = { version = "0.9.3", features = ["std"] }
 redb = "2.4.0"
 reqwest = "0.12.12"
 serde = {version = "1.0.218", features = ["derive"]}

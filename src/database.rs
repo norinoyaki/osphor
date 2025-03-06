@@ -1,5 +1,6 @@
-use std::path::Path;
+use std::{path::Path, str::FromStr};
 
+use argon2_kdf::Hash;
 use axum::{extract::State, response::IntoResponse, Json};
 use redb::{Database, TableDefinition};
 use reqwest::StatusCode;
@@ -37,7 +38,8 @@ pub async fn login(State(state): State<Instance>, Json(login): Json<Login>) -> i
     };
 
     let user = serde_json::from_str::<Player>(&value).unwrap();
-    if login.password != user.password {
+    let hash = Hash::from_str(&user.password).unwrap();
+    if !hash.verify(login.password.as_bytes()) {
         return (StatusCode::UNAUTHORIZED, "Wrong password.").into_response();
     }
 

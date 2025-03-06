@@ -1,4 +1,5 @@
 mod database;
+mod model;
 mod routes;
 
 use std::{fs, path::Path};

@@ -1,16 +1,21 @@
+use std::collections::HashMap;
+
 use argon2_kdf::{Algorithm, Hasher};
 use axum::{extract::State, response::IntoResponse, Json};
 use redb::ReadableTable;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::value;
 
-use crate::{database::PLAYERS, routes::Instance};
+use crate::{
+    database::{load_data, PLAYERS},
+    routes::Instance,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Player {
     pub username: String,
-    pub display: String,
-    pub avatar: String,
+    pub password: String,
 
     #[serde(default = "default_exp")]
     pub exp: u32,
@@ -24,7 +29,7 @@ pub struct Player {
     #[serde(default = "default_volatility")]
     pub volatility: u16,
 
-    pub password: String,
+    pub data: HashMap<String, value::Value>,
 }
 
 fn default_exp() -> u32 {
@@ -73,7 +78,7 @@ pub async fn players_get(State(state): State<Instance>) -> impl IntoResponse {
                 Err(e) => {
                     return (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to deserialive player data: {:?}", e),
+                        format!("Failed to deserialize player data: {:?}", e),
                     )
                         .into_response()
                 }
@@ -90,6 +95,23 @@ pub async fn players_post(
     Json(mut player): Json<Player>,
 ) -> impl IntoResponse {
     let txn = state.db.begin_write().unwrap();
+
+    // I have no fucking idea what the fuck did I made
+    // It clone the real response, replace player data hashmap with default value
+    // and map all the real response data into default value hashmap
+    // intentionally to prevent extra data being pushed from response
+    let temp = player.clone();
+    let data_schema = load_data(); // This is the user-defined field config
+
+    player.data.clear(); // Clear existing data to ensure no extra fields
+
+    for field in data_schema.keys() {
+        if let Some(value) = temp.data.get(field) {
+            player.data.insert(field.clone(), value.clone());
+        } else if let Some(default) = data_schema.get(field) {
+            player.data.insert(field.clone(), default.clone()); // Ensure default values
+        }
+    }
 
     {
         let mut table = match txn.open_table(PLAYERS) {
@@ -108,10 +130,6 @@ pub async fn players_post(
             .unwrap();
 
         player.password = hash.to_string();
-        player.exp = 0;
-        player.rating = 1500;
-        player.deviation = 300;
-        player.volatility = (0.6 * 10000.0) as u16;
         let value = serde_json::to_string(&player).unwrap();
         table.insert(&*player.username, &*value).unwrap();
     }
@@ -119,6 +137,6 @@ pub async fn players_post(
 
     (
         StatusCode::CREATED,
-        "Players succesfully created.".to_string(),
+        "Player successfully created with custom fields.".to_string(),
     )
 }

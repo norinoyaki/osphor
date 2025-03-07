@@ -6,6 +6,7 @@ use redb::ReadableTable;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::value;
+use skillratings::weng_lin::WengLinRating;
 
 use crate::{
     database::{load_data, PLAYERS},
@@ -17,32 +18,14 @@ pub struct Player {
     pub username: String,
     pub password: String,
 
-    #[serde(default = "default_exp")]
-    pub exp: u32,
-
     #[serde(default = "default_rating")]
-    pub rating: u16,
-
-    #[serde(default = "default_deviation")]
-    pub deviation: u16,
-
-    #[serde(default = "default_volatility")]
-    pub volatility: u16,
+    pub rank: WengLinRating,
 
     pub data: HashMap<String, value::Value>,
 }
 
-fn default_exp() -> u32 {
-    0
-}
-fn default_rating() -> u16 {
-    1500
-}
-fn default_deviation() -> u16 {
-    300
-}
-fn default_volatility() -> u16 {
-    (0.6 * 10000.0) as u16
+fn default_rating() -> WengLinRating {
+    WengLinRating::new()
 }
 
 // Handler to requests all players data

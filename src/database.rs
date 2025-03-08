@@ -38,21 +38,20 @@ pub fn load_data() -> HashMap<String, Value> {
     let mut data = HashMap::new();
 
     if let Ok(fields) = schema.get::<Table>("players") {
-        for pair in fields.pairs::<Integer, Table>() {
-            if let Ok((_, field)) = pair {
-                let name: String = field.get("name").unwrap();
-                let field_type: String = field.get("type").unwrap();
-                let default: Value = match field_type.as_str() {
-                    "int" => Value::from(field.get::<i32>("default").unwrap()),
-                    "bigint" => Value::from(field.get::<i64>("default").unwrap()),
-                    "float" => Value::from(field.get::<f32>("default").unwrap()),
-                    "real" => Value::from(field.get::<f64>("default").unwrap()),
-                    "string" => Value::from(field.get::<String>("default").unwrap()),
-                    "boolean" => Value::from(field.get::<bool>("default").unwrap()),
-                    _ => Value::Null,
-                };
-                data.insert(name, default);
-            }
+        for pair in fields.pairs::<Integer, Table>().flatten() {
+            let (_, field) = pair;
+            let name: String = field.get("name").unwrap();
+            let field_type: String = field.get("type").unwrap();
+            let default: Value = match field_type.as_str() {
+                "int" => Value::from(field.get::<i32>("default").unwrap()),
+                "bigint" => Value::from(field.get::<i64>("default").unwrap()),
+                "float" => Value::from(field.get::<f32>("default").unwrap()),
+                "real" => Value::from(field.get::<f64>("default").unwrap()),
+                "string" => Value::from(field.get::<String>("default").unwrap()),
+                "boolean" => Value::from(field.get::<bool>("default").unwrap()),
+                _ => Value::Null,
+            };
+            data.insert(name, default);
         }
     }
     data

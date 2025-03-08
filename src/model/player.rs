@@ -54,17 +54,16 @@ pub async fn players_get(State(state): State<Instance>) -> impl IntoResponse {
 
     let mut players = Vec::new();
 
-    for entry in table.iter().unwrap() {
-        if let Ok((_id, data)) = entry {
-            match serde_json::from_str::<Player>(data.value()) {
-                Ok(player) => players.push(player),
-                Err(e) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to deserialize player data: {:?}", e),
-                    )
-                        .into_response()
-                }
+    for entry in table.iter().unwrap().flatten() {
+        let (_id, data) = entry;
+        match serde_json::from_str::<Player>(data.value()) {
+            Ok(player) => players.push(player),
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to deserialize player data: {:?}", e),
+                )
+                    .into_response()
             }
         }
     }

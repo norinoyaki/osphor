@@ -6,37 +6,37 @@ use redb::Database;
 use std::sync::Arc;
 
 use crate::{
-    database::{init_database, login},
+    database::{init_players_db, login, validate},
     model::{players_get, players_post},
     Args,
 };
 
 #[derive(Clone)]
 pub struct Instance {
-    pub db: Arc<Database>,
+    pub players_db: Arc<Database>,
 }
 
-pub async fn start_routes(args: &Args) {
+pub async fn start_routes(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let instance = Instance {
-        db: Arc::new(init_database(args.dir.clone())),
+        players_db: Arc::new(init_players_db(args.dir.clone())),
     };
 
     let app = Router::new()
-        .route("/", get(root))
-        .route("/players", get(players_get).post(players_post))
-        .route("/login", post(login))
+        .route("/api", get(root))
+        .route("/api/players", get(players_get).post(players_post))
+        .route("/api/login", post(login))
+        .route("/api/validate", post(validate))
         .with_state(instance);
 
-    let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.ip, args.port))
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.ip, args.port)).await?;
 
-    println!(
+    info!(
         "REST API is now listening towards {}:{}",
         args.ip, args.port
     );
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await?;
+    Ok(())
 }
 
 async fn root() -> String {

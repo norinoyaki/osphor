@@ -2,7 +2,7 @@
 async fn test_health_check() {
     let client = reqwest::Client::new();
     let res = client
-        .get("http://localhost:31415/players")
+        .get("http://localhost:31415/api/players")
         .send()
         .await
         .unwrap();

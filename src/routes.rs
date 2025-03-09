@@ -9,26 +9,28 @@ use std::sync::Arc;
 use tracing::info;
 
 use crate::{
-    database::{init_players_db, login, validate},
-    model::{players_get, players_post},
+    database::init_players_db,
+    model::{player::Account, Player},
     Args,
 };
 
 #[derive(Clone)]
 pub struct Instance {
     pub players_db: Arc<Database>,
+    // pub rooms_db: Arc<Database>,
 }
 
 pub async fn start_routes(args: &Args) -> Result<(), anyhow::Error> {
     let instance = Instance {
         players_db: Arc::new(init_players_db(args.dir.clone())),
+        // rooms_db: Arc::new(init_rooms_db(args.dir.clone())),
     };
 
     let app = Router::new()
         .route("/api", get(root))
-        .route("/api/players", get(players_get).post(players_post))
-        .route("/api/login", post(login))
-        .route("/api/validate", post(validate))
+        .route("/api/players", get(Player::bulk).post(Player::register))
+        .route("/api/login", post(Account::login))
+        .route("/api/validate", post(Account::validate))
         .with_state(instance);
 
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", args.ip, args.port)).await?;

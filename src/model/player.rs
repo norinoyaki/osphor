@@ -84,6 +84,7 @@ pub async fn players_post(
 
     let value = serde_json::to_string(&player)?;
 
+    // Repeat prosess if were failed for less than 3 times
     for _ in 1..=3 {
         let txn = match state.players_db.begin_write() {
             Ok(txn) => txn,
@@ -95,12 +96,12 @@ pub async fn players_post(
         {
             let mut table = txn.open_table(PLAYERS)?;
 
-            if let Err(_) = table.insert(&*player.username, &*value) {
+            if table.insert(&*player.username, &*value).is_err() {
                 continue;
             };
         }
 
-        if let Err(_) = txn.commit() {
+        if txn.commit().is_err() {
             continue;
         }
 

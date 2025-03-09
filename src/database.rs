@@ -22,7 +22,7 @@ pub const PLAYERS: TableDefinition<&str, &str> = TableDefinition::new("players")
 pub const SESSIONS: TableDefinition<u32, &str> = TableDefinition::new("sessions");
 
 // JWT Secret Key (Consider making this configurable)
-pub const JWT_SECRET: &str = "fumo";
+const JWT_SECRET: &str = "fumo";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Login {

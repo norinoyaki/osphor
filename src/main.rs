@@ -30,5 +30,5 @@ async fn main() {
         fs::create_dir(&working_dir).unwrap();
     }
 
-    start_routes(&args).await;
+    start_routes(&args).await.unwrap();
 }

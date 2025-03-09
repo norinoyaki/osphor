@@ -1,9 +1,12 @@
 use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
 use redb::Database;
 use std::sync::Arc;
+use tracing::info;
 
 use crate::{
     database::{init_players_db, login, validate},
@@ -16,7 +19,7 @@ pub struct Instance {
     pub players_db: Arc<Database>,
 }
 
-pub async fn start_routes(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start_routes(args: &Args) -> Result<(), anyhow::Error> {
     let instance = Instance {
         players_db: Arc::new(init_players_db(args.dir.clone())),
     };
@@ -41,4 +44,25 @@ pub async fn start_routes(args: &Args) -> Result<(), Box<dyn std::error::Error>>
 
 async fn root() -> String {
     "Root Instances of Osphor API".to_string()
+}
+
+pub struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong: {}", self.0),
+        )
+            .into_response()
+    }
+}
+
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
 }
